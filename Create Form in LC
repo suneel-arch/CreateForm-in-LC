@@ -1,0 +1,386 @@
+CMP
+---
+<aura:component controller="GKAM_GCS_Profitablity_LC" implements="force:appHostable,force:hasRecordId,flexipage:availableForAllPageTypes,force:lightningQuickAction" access="global">
+   
+    <aura:html tag="style">
+    .slds-modal__container {
+     min-width: 95vw;
+    }
+  </aura:html>
+    <aura:attribute name="ProfList" type="PBT_Profitability__c[]"/> 
+    <aura:attribute name="currencyMap" type="List"/>
+    <aura:attribute name="errorMsg" type="boolean"/>
+    <aura:attribute name="errorMessage" type="String"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:handler event="force:refreshView" action="{!c.isRefreshed}" />
+    
+     <aura:if isTrue="{!v.errorMsg}">
+        <!-- Show the message to ui -->
+        <div class="slds-notify slds-notify_toast slds-theme_error">
+            <span class="slds-assistive-text">error</span>
+            <div class="slds-notify__content">
+                <h5 class="slds-text-heading_small slds-align_absolute-center">Error Message </h5>
+                <br/>
+                <p class="slds-align_absolute-center">{!v.errorMessage}</p>                
+            </div>
+        </div>
+    </aura:if>
+   
+    <div class="slds-m-around--xx-large">
+        <div class="slds-float_right slds-p-bottom_small">
+            <h1 class="slds-page-header__title">Add Row 
+                <lightning:buttonIcon iconName="utility:add"  size="large" variant="bare" alternativeText="Add" onclick="{!c.addRow}"/>
+            </h1>
+        </div>
+        <div class="container-fluid">        
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer"> 
+                <thead>
+                    <tr class="slds-text-title_caps">
+                        <th scope="col">
+                            <div class="slds-truncate">S.NO</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Model/Variant">Model/Variant</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Volume">Volume</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="MSRP">MSRP</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Discount per Unit">Discount PerUnit</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Bonus Local">Bonus Local</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Bonus Global">Bonus Global</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="RMP-I%">CMP(Per Unit)</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Country">Currency</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="CMP-I%">Year</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Action">Action</div>
+                        </th>
+                    </tr>
+                </thead>   
+                <tbody>      
+                    <aura:iteration items="{!v.ProfList}" var="pft" indexVar="index">
+                        <tr>
+                            <td> 
+                                {!index + 1}
+                            </td>
+                            <td>
+                                <lightning:input name="ModelVariant" type="text"  label="Model/Variant" value="{!pft.Variant__c}" />
+                            </td>
+                            <td>
+                                <lightning:input name="Volume" type="number" formatter="decimal" step="0.01" label="Volume" value="{!pft.Volume__c}" />
+                            </td>
+                            <td>
+                                <lightning:input name="MSRP" type="number"  formatter="decimal" step="0.01" label="MSRP" value="{!pft.MSRP__c}"  />
+                            </td>
+                            <td>
+                                <lightning:input name="disPerUnit" type="number" formatter="decimal" step="0.01"  label="Discount PerUnit" value="{!pft.Discountperunit__c}" />
+                            </td>
+                            <td>
+                                <lightning:input name="bonusLobal" type="number" formatter="decimal" step="0.01"  label="Bonus Local" value="{!pft.BonusLocal__c}" />
+                            </td>
+                            <td>
+                                <lightning:input name="bonusGlobal" type="number" formatter="decimal" step="0.01" label="Bonus Global" value="{!pft.BonusGlobal__c}" />
+                            </td>
+                            <td>
+                                <lightning:input name="RMPI" type="number" formatter="decimal" step="0.01" label="CMP(Per Unit)" value="{!pft.CMPperunit__c}" />
+                            </td>
+                            <td>
+                             <lightning:select aura:id="RegionCurrency" label="Currency" value="{!pft.CurrencyIsoCode}" >
+                                 <option value="">Choose one...</option>
+                                 <aura:iteration items="{!v.currencyMap}" var="currn">
+                                  <option value="{!currn.pickListValue}">{!currn.pickListLabel}</option>
+                              </aura:iteration>                
+                             </lightning:select>
+                            </td>
+                            <td>
+                                <lightning:input name="Year" type="text"  label="Year" value="{!pft.Year__c}" />
+                            </td>
+                            <td>
+                                <a onclick="{!c.removeRow}" data-record="{!index}">
+                                    <lightning:icon iconName="utility:delete" size="small" alternativeText="Delete"/>
+                                    <span class="slds-assistive-text">Delete</span>
+                                </a>
+                            </td> 
+                        </tr>
+                    </aura:iteration>
+                </tbody>
+            </table>
+            <div class="slds-align_absolute-center slds-p-top_small">
+                <lightning:button variant="brand" label="Submit" title="Brand action" onclick="{!c.save}" />
+            </div>
+        </div>
+    </div> 
+</aura:component>
+------------------------------------
+Controller
+===========
+
+({
+    doInit: function(component, event, helper) {        
+        helper.getCurrecyPicklist(component, event);
+    },
+    addRow: function(component, event, helper) {
+        helper.addAccountRecord(component, event);
+    },
+     
+    removeRow: function(component, event, helper) {
+        //Get the account list
+        var ProfList = component.get("v.ProfList");
+        //Get the target object
+        var selectedItem = event.currentTarget;
+        //Get the selected item index
+        var index = selectedItem.dataset.record;
+        ProfList.splice(index, 1);
+        component.set("v.ProfList", ProfList);
+    },
+     
+    save: function(component, event, helper) {
+        if (helper.validateAccountList(component, event)) {
+            helper.saveAccountList(component, event);
+        }
+    },
+})
+
+Helper:
+=======
+
+({
+    
+     getCurrecyPicklist: function(component, event) {
+        var action = component.get("c.findCurrencyPicklistOptions");
+        action.setCallback(this, function(response) {
+            var state = response.getState();
+            if (state === "SUCCESS") {
+                var result = response.getReturnValue();
+                component.set("v.currencyMap",result);  
+            }
+        });
+        $A.enqueueAction(action);
+    },
+    
+    addAccountRecord: function(component, event) {
+        //get the Profitablity List from component  
+        var ProfList = component.get("v.ProfList");
+        //Add New Profitablity Record
+        ProfList.push({
+            'sobjectType': 'PBT_Profitability__c',
+            'Variant__c': '',
+            'Volume__c': '',
+            'MSRP__c': '',
+            'Discountperunit__c': '',
+            'BonusLocal__c':'',
+            'BonusGlobal__c':'',
+            'CMPperunit__c':'',
+            'CurrencyIsoCode':'',
+            'Year__c':'',
+            'Account__c':component.get("v.recordId")
+        });
+        component.set("v.ProfList", ProfList);
+    },
+     
+    validateAccountList: function(component, event) {
+        //Validate all profitablity  records
+        var isValid = true;
+        return isValid;
+    },
+     
+    saveAccountList: function(component, event, helper) {
+        //Call Apex class and pass profitablity list parameters
+        var action = component.get("c.saveProfitablity");
+        action.setParams({
+            "lstpft": component.get("v.ProfList")
+        });
+        
+        action.setCallback(this, function(response) {
+            var state = response.getState();
+            if (state === "SUCCESS") {
+                component.set("v.ProfList", []);
+                var toastEvent = $A.get("e.force:showToast");
+                toastEvent.setParams({
+                 "mode": 'dismissible',
+                "title": "Success!",
+                "message": "The Profitablity record has been saved successfully."
+             });
+                toastEvent.fire();
+             $A.get("e.force:closeQuickAction").fire();
+             $A.get('e.force:refreshView').fire();
+            }else if(state==="ERROR"){
+               var errorMsg = response.getError()[0];
+               component.set("v.errorMessage",JSON.stringify(errorMsg));
+               component.set("v.errorMsg",true);
+               console.error('ERROR '+component.get("v.errorMessage"));   
+            }
+        }); 
+        $A.enqueueAction(action);
+    },
+})
+
+Apex Class
+==========
+Public with Sharing class GKAM_GCS_Profitablity_LC { 
+    /*   
+@MethodName :saveProfitablity 
+@Description : Check the model and variant,if present it will take that refference ID or else given
+model/variant stores in variant object
+@params : List<PBT_Profitability__c> newProfitabilityRecordsList 
+*/
+    
+    @AuraEnabled
+    public static Boolean saveProfitablity(List<PBT_Profitability__c> lstpft){
+        
+        Boolean result =false;
+        
+        if(!lstpft.isEmpty()){
+            Set<String> modelVar=new Set<String>();
+            for(PBT_Profitability__c pft :lstpft){
+                modelVar.add(pft.Variant__c);
+            }
+            Map<string,Id> nametoId=new Map<string,Id>();
+            
+            //Checking data in a model-if present it stores like name-id pair
+            
+            /*for(MDL_Model__c mod:[Select id,Name from MDL_Model__c where name IN :modelVar]){
+nametoId.put(mod.name.toUpperCase(),mod.Id);
+}*/
+            
+            //Checking data in a Variant-if present it stores like name-id pair
+            
+            for(VNT_Variant__c var:[Select id,Name from VNT_Variant__c where name IN : modelVar]){
+                nametoId.put(var.name.toUpperCase(),var.Id); 
+            }
+            //Checking new model/varaint with map object(it has both model&variant values)
+            //if not the new entered model/variant value stores in variant object
+            
+            List<VNT_Variant__c> lstvar=new List<VNT_Variant__c>();
+            //List<String> checklistVar =new List<String>();
+            for(String str:modelVar){
+                if(!nametoId.containskey(str.toUpperCase())){ 
+                    VNT_Variant__c var= new VNT_Variant__c(name=str.toUpperCase());
+                    // checklistVar.add(str.toUpperCase());
+                    lstvar.add(var);
+                } 
+            }
+            
+            if(!lstvar.isempty()){
+                try{
+                    insert lstvar;
+                    result=false;
+                }catch(Exception exc){
+                    result=true;
+                    throw new AuraHandledException(exc.getMessage());   
+                } 
+            }
+            
+            for(VNT_Variant__c var:lstvar){
+                nametoId.put(var.name,var.Id); 
+            }
+            
+            //Adding new records on Profitablity
+            List<Account> lsacc =new List<Account>();
+            Account acc =new Account();
+            List<PBT_Profitability__c> lstpro=new List<PBT_Profitability__c>();
+            for(PBT_Profitability__c pft : lstpft){
+                String tempVart =pft.Variant__c;
+                System.debug('@@@@@'+nametoId.get(tempVart.toUpperCase()));
+                pft.Variant__c=nametoId.get(tempVart.toUpperCase());
+                acc.id=pft.Account__c;
+                acc.IsProfitabilitySubmitted__c=true;
+                lsacc.add(acc);
+                lstpro.add(pft);
+            }
+            
+            if(!lstpro.isEmpty()){
+                try{
+                    insert lstpro;
+                    result=false;
+                }catch(Exception exc){
+                    result=true;
+                    throw new AuraHandledException(exc.getMessage()); 
+                }
+                
+            }    
+            if(lsacc.size()>0){
+                map<id,account> accmap = new map<id,account>();
+                accmap.putall(lsacc);
+                try{
+                    update accmap.values();
+                    result=false;
+                }catch(Exception exc){
+                    result=true;
+                    throw new AuraHandledException(exc.getMessage());
+                }
+                
+            }
+            
+        }else{
+            result=true;
+            throw new AuraHandledException('Please Enter one of the Record');  
+        }
+        
+        return result;
+    }
+    
+    /*   
+@MethodName :findPicklistOptions 
+@Description : Load the countries list from Profitability object whenever profitablity ligtening custom component called. 
+@params : List<PBT_Profitability__c> newProfitabilityRecordsList 
+*/
+    
+    @AuraEnabled
+    Public static List<picklistWrapper> findPicklistOptions(string objAPIName, string fieldAPIname) {
+        
+        list<picklistWrapper> returnValue = new list<picklistWrapper>();
+        
+        Schema.DescribeFieldResult fieldResult = PBT_Profitability__c.Country__c.getDescribe();
+        List<Schema.PicklistEntry> pList = fieldResult.getPicklistValues();
+        for (Schema.PicklistEntry a: pList) {
+            picklistWrapper aa = new picklistWrapper();
+            aa.pickListLabel = a.getLabel();
+            aa.pickListValue = a.getValue();
+            returnValue.add(aa);
+        }
+        return returnValue;       
+    }
+    
+    
+    /*   
+@MethodName :findCurrencyPicklistOptions 
+@Description : Load the currencies list from Profitability object whenever profitablity ligtening custom component called. 
+@params : List<PBT_Profitability__c> newProfitabilityRecordsList 
+*/
+    @AuraEnabled
+    Public static List<picklistWrapper> findCurrencyPicklistOptions(string objAPIName, string fieldAPIname) {
+        
+        list<picklistWrapper> returnValue = new list<picklistWrapper>();
+        
+        Schema.DescribeFieldResult fieldResult = PBT_Profitability__c.CurrencyIsoCode.getDescribe();
+        List<Schema.PicklistEntry> pList = fieldResult.getPicklistValues();
+        for (Schema.PicklistEntry a: pList) {
+            picklistWrapper aa = new picklistWrapper();
+            aa.pickListLabel = a.getLabel();
+            aa.pickListValue = a.getValue();
+            returnValue.add(aa);
+        }
+        return returnValue;       
+    }
+    public class picklistWrapper{
+        @AuraEnabled 
+        public string pickListLabel;
+        @AuraEnabled 
+        public string pickListValue; 
+    }   
+}
